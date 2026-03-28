@@ -1,7 +1,7 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
-import Header from "./components/Header";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: {
@@ -13,14 +13,10 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
   },
 };
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const nunitoSans = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export default function RootLayout({
@@ -31,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${nunitoSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-white">

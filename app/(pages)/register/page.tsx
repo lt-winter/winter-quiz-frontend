@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import api from "@/lib/axios";
-import Footer from "../components/Footer";
+import Footer from "@/components/Footer";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -79,7 +81,7 @@ export default function RegisterPage() {
 
       // Redirect to sign-in page after 2 seconds
       setTimeout(() => {
-        window.location.href = "/sign-in";
+        window.location.href = "/login";
       }, 2000);
     } catch (error: any) {
       const errorCode = error.response?.status;
@@ -104,7 +106,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
@@ -216,10 +218,10 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3 font-semibold flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -248,19 +250,19 @@ export default function RegisterPage() {
               ) : (
                 "Đăng ký"
               )}
-            </button>
+            </Button>
           </form>
 
           {/* Login Link */}
           <div className="text-center pt-2">
             <p className="text-gray-600">
               Đã có tài khoản?{" "}
-              <a
-                href="/sign-in"
+              <Link
+                href="/login"
                 className="text-blue-600 hover:text-blue-700 font-semibold transition duration-200"
               >
                 Đăng nhập
-              </a>
+              </Link>
             </p>
           </div>
         </div>
