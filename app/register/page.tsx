@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import axios from "axios";
+import api from "@/lib/axios";
+import Footer from "../components/Footer";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "",
     email: "",
     password: "",
   });
@@ -15,7 +16,7 @@ export default function RegisterPage() {
     text: string;
   }>({ type: null, text: "" });
   const [errors, setErrors] = useState({
-    fullName: "",
+    name: "",
     email: "",
     password: "",
   });
@@ -30,13 +31,13 @@ export default function RegisterPage() {
 
   const validateForm = () => {
     const newErrors = {
-      fullName: "",
+      name: "",
       email: "",
       password: "",
     };
 
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Vui lòng nhập họ tên";
+    if (!formData.name.trim()) {
+      newErrors.name = "Vui lòng nhập họ tên";
     }
     if (!formData.email.trim()) {
       newErrors.email = "Vui lòng nhập email";
@@ -64,8 +65,8 @@ export default function RegisterPage() {
     setMessage({ type: null, text: "" });
 
     try {
-      await axios.post("http://localhost:8080/api/auth/sign-up", {
-        fullName: formData.fullName,
+      await api.post("/api/auth/sign-up", {
+        name: formData.name,
         email: formData.email,
         password: formData.password,
       });
@@ -74,36 +75,29 @@ export default function RegisterPage() {
         type: "success",
         text: "Đăng ký thành công! Vui lòng đăng nhập.",
       });
-      setFormData({ fullName: "", email: "", password: "" });
+      setFormData({ name: "", email: "", password: "" });
 
       // Redirect to sign-in page after 2 seconds
       setTimeout(() => {
         window.location.href = "/sign-in";
       }, 2000);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const errorCode = error.response?.status;
-        let errorMessage;
-        switch (errorCode) {
-          case 409:
-            errorMessage = "Email đã được sử dụng";
-            break;
-          case 400:
-            errorMessage = "Dữ liệu không hợp lệ";
-            break;
-          default:
-            errorMessage = "Lỗi không xác định";
-        }
-        setMessage({
-          type: "error",
-          text: errorMessage,
-        });
-      } else {
-        setMessage({
-          type: "error",
-          text: "Đã xảy ra lỗi. Vui lòng thử lại.",
-        });
+    } catch (error: any) {
+      const errorCode = error.response?.status;
+      let errorMessage;
+      switch (errorCode) {
+        case 409:
+          errorMessage = "Email đã được sử dụng";
+          break;
+        case 400:
+          errorMessage = "Dữ liệu không hợp lệ";
+          break;
+        default:
+          errorMessage = "Lỗi không xác định";
       }
+      setMessage({
+        type: "error",
+        text: errorMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -125,11 +119,10 @@ export default function RegisterPage() {
           {/* Notification Messages */}
           {message.type && (
             <div
-              className={`p-4 rounded-lg border-l-4 ${
-                message.type === "success"
-                  ? "bg-green-50 border-green-500 text-green-800"
-                  : "bg-red-50 border-red-500 text-red-800"
-              }`}
+              className={`p-4 rounded-lg border-l-4 ${message.type === "success"
+                ? "bg-green-50 border-green-500 text-green-800"
+                : "bg-red-50 border-red-500 text-red-800"
+                }`}
               role="alert"
             >
               <p className="font-medium text-sm">{message.text}</p>
@@ -141,30 +134,28 @@ export default function RegisterPage() {
             {/* Full Name Field */}
             <div>
               <label
-                htmlFor="fullName"
+                htmlFor="name"
                 className="block text-sm font-semibold text-gray-700 mb-2"
               >
                 Họ tên
               </label>
               <input
-                id="fullName"
+                id="name"
                 type="text"
-                name="fullName"
-                value={formData.fullName}
+                name="name"
+                value={formData.name}
                 onChange={handleInputChange}
                 placeholder="Nhập họ tên của bạn"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition duration-200 bg-gray-50 text-gray-700 ${
-                  errors.fullName
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition duration-200 bg-gray-50 text-gray-700 ${errors.name
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
+                  }`}
               />
               <p
-                className={`text-sm font-medium mt-1 h-5 ${
-                  errors.fullName ? "text-red-600" : "text-transparent"
-                }`}
+                className={`text-sm font-medium mt-1 h-5 ${errors.name ? "text-red-600" : "text-transparent"
+                  }`}
               >
-                {errors.fullName || "placeholder"}
+                {errors.name || "placeholder"}
               </p>
             </div>
 
@@ -183,16 +174,14 @@ export default function RegisterPage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 placeholder="Nhập địa chỉ email của bạn"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition duration-200 bg-gray-50 text-gray-700 ${
-                  errors.email
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition duration-200 bg-gray-50 text-gray-700 ${errors.email
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
+                  }`}
               />
               <p
-                className={`text-sm font-medium mt-1 h-5 ${
-                  errors.email ? "text-red-600" : "text-transparent"
-                }`}
+                className={`text-sm font-medium mt-1 h-5 ${errors.email ? "text-red-600" : "text-transparent"
+                  }`}
               >
                 {errors.email || "placeholder"}
               </p>
@@ -213,16 +202,14 @@ export default function RegisterPage() {
                 value={formData.password}
                 onChange={handleInputChange}
                 placeholder="Nhập mật khẩu (tối thiểu 6 ký tự)"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition duration-200 bg-gray-50 text-gray-700 ${
-                  errors.password
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300 focus:ring-blue-500"
-                }`}
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:border-transparent transition duration-200 bg-gray-50 text-gray-700 ${errors.password
+                  ? "border-red-500 focus:ring-red-500"
+                  : "border-gray-300 focus:ring-blue-500"
+                  }`}
               />
               <p
-                className={`text-sm font-medium mt-1 h-5 ${
-                  errors.password ? "text-red-600" : "text-transparent"
-                }`}
+                className={`text-sm font-medium mt-1 h-5 ${errors.password ? "text-red-600" : "text-transparent"
+                  }`}
               >
                 {errors.password || "placeholder"}
               </p>
@@ -279,9 +266,7 @@ export default function RegisterPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-gray-500 text-sm mt-6">
-          © 2026 Winter Quiz. Tất cả quyền được bảo vệ.
-        </p>
+        <Footer />
       </div>
     </div>
   );
