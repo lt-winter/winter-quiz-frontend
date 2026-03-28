@@ -73,7 +73,7 @@ export default function RegisterPage() {
 
       setMessage({
         type: "success",
-        text: "Đăng ký thành công! Vui lòng đăng nhập.",
+        text: "Đăng ký thành công! Đang chuyển sang trang đăng nhập...",
       });
       setFormData({ name: "", email: "", password: "" });
 
