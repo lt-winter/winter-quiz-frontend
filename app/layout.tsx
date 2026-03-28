@@ -30,7 +30,7 @@ export default function RootLayout({
       className={`${nunitoSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-white">
+      <body className="min-h-full flex flex-col bg-white font-sans">
         {/* Navbar */}
         <Header />
 

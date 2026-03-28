@@ -23,34 +23,54 @@ export default function RegisterPage() {
     password: "",
   });
 
+  const validateField = (name: "name" | "email" | "password", value: string) => {
+    if (name === "name") {
+      if (!value.trim()) {
+        return "Vui lòng nhập họ tên";
+      }
+      return "";
+    }
+
+    if (name === "email") {
+      if (!value.trim()) {
+        return "Vui lòng nhập email";
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        return "Email không hợp lệ";
+      }
+      return "";
+    }
+
+    if (!value.trim()) {
+      return "Vui lòng nhập mật khẩu";
+    }
+    if (value.length < 6) {
+      return "Mật khẩu phải có ít nhất 6 ký tự";
+    }
+    return "";
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    const fieldName = name as "name" | "email" | "password";
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [fieldName]: value,
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      [fieldName]: validateField(fieldName, value),
     }));
   };
 
   const validateForm = () => {
     const newErrors = {
-      name: "",
-      email: "",
-      password: "",
+      name: validateField("name", formData.name),
+      email: validateField("email", formData.email),
+      password: validateField("password", formData.password),
     };
-
-    if (!formData.name.trim()) {
-      newErrors.name = "Vui lòng nhập họ tên";
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = "Vui lòng nhập email";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Email không hợp lệ";
-    }
-    if (!formData.password.trim()) {
-      newErrors.password = "Vui lòng nhập mật khẩu";
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Mật khẩu phải có ít nhất 6 ký tự";
-    }
 
     setErrors(newErrors);
     return Object.values(newErrors).every((error) => error === "");

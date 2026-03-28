@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const hideNavbar = pathname === "/sign-in" || pathname === "/register";
+  const hideNavbar = pathname === "/register" || pathname === "/login";
 
   if (hideNavbar) {
     return null;
@@ -28,7 +28,7 @@ export default function Navbar() {
           {/* Navigation Links */}
           <div className="flex gap-4">
             <Link
-              href="/sign-in"
+              href="/login"
               className="px-4 py-2 text-gray-700 font-medium hover:text-blue-600 transition duration-200"
             >
               Đăng nhập
