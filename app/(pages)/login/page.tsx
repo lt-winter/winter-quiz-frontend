@@ -5,11 +5,14 @@ import Link from "next/link";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
 
+import { useAuthStore } from "@/store/authStore";
+
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
 
   const router = useRouter();
+  const setUser = useAuthStore((state) => state.setUser);
 
   const validateField = (name: "email" | "password", value: string) => {
     if (name === "email") {
@@ -59,20 +62,17 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (validate()) { // Hàm validate bạn đã viết ở bài 11
+    if (validate()) {
       try {
-        // Gọi API Login đã viết ở Video #10 bên Spring Boot
         const response = await api.post("/api/auth/login", formData);
-
+        setUser(response.data);
         if (response.status === 200) {
           const user = response.data;
 
-          // 1. Lưu thông tin User vào localStorage (Thay cho việc giữ State của Angular)
           localStorage.setItem("quiz_user", JSON.stringify(user));
 
           alert("Đăng nhập thành công!");
 
-          // 2. Điều hướng dựa trên Role (Logic quan trọng nhất của bài này)
           if (user.role === "ADMIN") {
             router.push("/admin/dashboard");
           } else {
@@ -80,7 +80,6 @@ export default function LoginPage() {
           }
         }
       } catch (error: any) {
-        // Xử lý lỗi 401 Unauthorized hoặc 406 từ Spring Boot
         const errorMsg = error.response?.data || "Email hoặc mật khẩu không chính xác!";
         alert(errorMsg);
       }
