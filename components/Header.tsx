@@ -1,9 +1,13 @@
 "use client";
 
+import { useAuthStore } from "@/store/authStore";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "./ui/button";
 
 export default function Navbar() {
+  const { user, logout } = useAuthStore();
   const pathname = usePathname();
   const hideNavbar = pathname === "/register" || pathname === "/login";
 
@@ -16,10 +20,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo/App Name */}
-          <div className="shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
+            <Image src="/favicon.ico" width={40} height={40} alt="logo"></Image>
             <Link
               href="/"
-              className="text-2xl font-bold bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-indigo-700 transition duration-200"
+              className="inline-flex items-center text-2xl font-bold leading-none bg-linear-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hover:from-blue-700 hover:to-indigo-700 transition duration-200"
             >
               Winter Quiz
             </Link>
@@ -27,18 +32,29 @@ export default function Navbar() {
 
           {/* Navigation Links */}
           <div className="flex gap-4">
-            <Link
-              href="/login"
-              className="px-4 py-2 text-gray-700 font-medium hover:text-blue-600 transition duration-200"
-            >
-              Đăng nhập
-            </Link>
-            <Link
-              href="/register"
-              className="px-4 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200"
-            >
-              Đăng ký
-            </Link>
+            {user ? (
+              <>
+                <span className="p-1 font-bold text-sky-800">{user.name}</span>
+                <Button onClick={logout}>Đăng xuất</Button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-gray-700 font-medium hover:text-blue-600 transition duration-200"
+                >
+                  Đăng nhập
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="px-4 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200"
+                >
+                  Đăng ký
+                </Link>
+              </>
+            )
+            }
           </div>
         </div>
       </div>

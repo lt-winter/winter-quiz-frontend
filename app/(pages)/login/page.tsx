@@ -10,6 +10,10 @@ import { useAuthStore } from "@/store/authStore";
 export default function LoginPage() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({ email: "", password: "" });
+  const [message, setMessage] = useState<{
+    type: "success" | "error" | null;
+    text: string;
+  }>({ type: null, text: "" });
 
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
@@ -63,25 +67,32 @@ export default function LoginPage() {
     e.preventDefault();
 
     if (validate()) {
+      setMessage({ type: null, text: "" });
+
       try {
         const response = await api.post("/api/auth/login", formData);
-        setUser(response.data);
-        if (response.status === 200) {
-          const user = response.data;
+        const user = response.data;
 
-          localStorage.setItem("quiz_user", JSON.stringify(user));
+        setUser(user);
+        localStorage.setItem("quiz_user", JSON.stringify(user));
+        setMessage({
+          type: "success",
+          text: "Đăng nhập thành công! Đang chuyển hướng...",
+        });
 
-          alert("Đăng nhập thành công!");
-
+        setTimeout(() => {
           if (user.role === "ADMIN") {
-            router.push("/admin/dashboard");
+            router.push("/admin");
           } else {
-            router.push("/user/dashboard");
+            router.push("/");
           }
-        }
+        }, 1200);
       } catch (error: any) {
         const errorMsg = error.response?.data || "Email hoặc mật khẩu không chính xác!";
-        alert(errorMsg);
+        setMessage({
+          type: "error",
+          text: errorMsg,
+        });
       }
     }
   };
@@ -94,6 +105,19 @@ export default function LoginPage() {
             Đăng nhập
           </h2>
         </div>
+
+        {/* Notification Messages */}
+        {message.type && (
+          <div
+            className={`p-4 rounded-lg border-l-4 ${message.type === "success"
+              ? "bg-green-50 border-green-500 text-green-800"
+              : "bg-red-50 border-red-500 text-red-800"
+              }`}
+            role="alert"
+          >
+            <p className="font-medium text-sm">{message.text}</p>
+          </div>
+        )}
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
