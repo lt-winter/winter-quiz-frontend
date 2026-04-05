@@ -40,18 +40,19 @@ export default function Navbar() {
             ) : (
               <>
                 <Link
-                  href="/login"
+                  href="/register"
                   className="px-4 py-2 text-gray-700 font-medium hover:text-blue-600 transition duration-200"
+                >
+                  Đăng ký
+                </Link>
+                <Link
+                  href="/login"
+                  className="px-4 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200"
                 >
                   Đăng nhập
                 </Link>
 
-                <Link
-                  href="/register"
-                  className="px-4 py-2 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg hover:from-blue-700 hover:to-indigo-700 transition duration-200"
-                >
-                  Đăng ký
-                </Link>
+
               </>
             )
             }

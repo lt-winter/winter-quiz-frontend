@@ -88,7 +88,7 @@ export default function LoginPage() {
           }
         }, 1200);
       } catch (error: any) {
-        const errorMsg = error.response?.data || "Email hoặc mật khẩu không chính xác!";
+        const errorMsg = error.response?.status === 406 ? "Email hoặc mật khẩu không chính xác!" : "undefined ";
         setMessage({
           type: "error",
           text: errorMsg,

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 
+// Fake data
 const guestHighlights = [
   { label: "Bộ đề", value: "120+" },
   { label: "Chủ đề", value: "18" },
