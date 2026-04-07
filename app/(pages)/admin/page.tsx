@@ -46,7 +46,7 @@ export default function AdminDashboard() {
               </CardContent>
 
               <CardFooter className="flex gap-2 border-t pt-4">
-                <Link href={`/admin/view-quiz/${quiz.id}`} className="flex-1">
+                <Link href={`/admin/quiz/${quiz.id}`} className="flex-1">
                   <Button variant="outline" className="w-full flex gap-2">
                     <Eye size={16} /> Xem
                   </Button>
