@@ -1,94 +1,72 @@
 "use client";
-
-import Link from "next/link";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/store/authStore";
+import { Clock, BookOpen, PlusCircle, Eye } from "lucide-react";
+import Link from "next/link";
 
+export default function AdminDashboard() {
+  const [quizzes, setQuizzes] = useState([]);
 
-export default function Home() {
-  const user = useAuthStore((state) => state.user);
+  useEffect(() => {
+    api.get("/api/quiz")
+      .then((res) => setQuizzes(res.data))
+      .catch((err) => console.error("Lỗi lấy danh sách bài thi:", err));
+  }, []);
+
+  const getFormattedTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes} phút ${remainingSeconds} giây`;
+  };
 
   return (
-    <main className="min-h-[calc(100vh-64px)] bg-linear-to-b from-slate-50 via-sky-50/70 to-blue-100/60 px-4 py-8 sm:px-6 lg:px-8">
-      <section className="mx-auto w-full max-w-6xl rounded-3xl border border-sky-100 bg-white/95 p-6 shadow-xl shadow-slate-200/60 backdrop-blur-sm md:p-8">
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
-            <div className="space-y-4">
-              <p className="inline-block rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-                Winter Quiz
-              </p>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">Admin Dashboard</h1>
 
-              {user ? (
-                <>
-                  <h1 className="text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
-                    Xin chào, {user.name}! Đây là trang chủ của bạn.
-                  </h1>
-                  <p className="text-slate-600">
-                    Theo dõi tiến độ học, xem hoạt động gần đây và tiếp tục bài đang làm ngay
-                    tại đây.
-                  </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map((quiz: any) => (
+            <Card key={quiz.id} className="hover:shadow-lg transition-shadow border-t-4 border-indigo-600">
+              <CardHeader>
+                <CardTitle className="text-xl text-indigo-700">{quiz.title}</CardTitle>
+              </CardHeader>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-md bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-700">
-                      Quyền: {user.role}
-                    </span>
-                    <span className="rounded-md bg-slate-100 px-3 py-1 text-sm text-slate-600">
-                      {user.email}
-                    </span>
-                  </div>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2 text-gray-600 text-sm">
+                  <Clock size={16} />
+                  <span className="font-semibold">Thời gian:</span>
+                  {getFormattedTime(quiz.time)}
+                </div>
+                <div className="flex items-start gap-2 text-gray-600 text-sm">
+                  <BookOpen size={16} className="mt-1" />
+                  <p className="line-clamp-3">{quiz.description}</p>
+                </div>
+              </CardContent>
 
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      render={<Link href="/admin/quiz/add" />}
-                      nativeButton={false}
-                      className="h-10 rounded-lg bg-sky-600 px-5 font-semibold text-white hover:bg-sky-700"
-                    >
-                      Thêm quiz
-                    </Button>
-                    <Button
-                      variant="outline"
-                      render={<Link href="/" />}
-                      nativeButton={false}
-                      className="h-10 rounded-lg border-slate-300 bg-white px-5 font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Làm mới trang
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h1 className="text-3xl font-bold leading-tight text-slate-900 md:text-4xl">
-                    Nền tảng ôn luyện và kiểm tra kiến thức trực tuyến
-                  </h1>
-                  <p className="text-slate-600">
-                    Winter Quiz giúp bạn luyện đề theo chủ đề, theo dõi tiến độ và nâng cao
-                    kết quả qua từng bài làm.
-                  </p>
-
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      render={<Link href="/login" />}
-                      nativeButton={false}
-                      className="h-10 rounded-lg bg-sky-600 px-5 font-semibold text-white hover:bg-sky-700"
-                    >
-                      Đăng nhập
-                    </Button>
-                    <Button
-                      variant="outline"
-                      render={<Link href="/register" />}
-                      nativeButton={false}
-                      className="h-10 rounded-lg border-slate-300 bg-white px-5 font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Đăng ký
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-
-          </div>
+              <CardFooter className="flex gap-2 border-t pt-4">
+                <Link href={`/admin/view-quiz/${quiz.id}`} className="flex-1">
+                  <Button variant="outline" className="w-full flex gap-2">
+                    <Eye size={16} /> Xem
+                  </Button>
+                </Link>
+                <Link href={`/admin/add-question/${quiz.id}`} className="flex-1">
+                  <Button className="w-full bg-indigo-600 flex gap-2">
+                    <PlusCircle size={16} /> Thêm câu hỏi
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
         </div>
-      </section>
-    </main>
+
+        {quizzes.length === 0 && (
+          <div className="text-center py-20 text-gray-400 italic">
+            Chưa có bài thi nào được tạo. Nhấn để bắt đầu!
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
