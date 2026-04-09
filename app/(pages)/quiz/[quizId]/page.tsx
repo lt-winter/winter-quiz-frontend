@@ -20,19 +20,23 @@ interface Quiz {
   title: string;
 }
 
-export default function TakeTestPage() {
+export default function TakeQuizPage() {
   const { quizId } = useParams(); // Lấy quizId từ URL
   const [questions, setQuestions] = useState<Question[]>([]);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
   const router = useRouter();
 
   // Gọi API lấy danh sách câu hỏi của quiz
   useEffect(() => {
     api.get(`/api/quiz/${quizId}`)
       .then((res) => {
+        setErrorMessage("");
         // Support response shape: { quizDTO, questions }
         if (Array.isArray(res.data)) {
+          setQuiz(null);
           setQuestions(res.data);
           return;
         }
@@ -40,7 +44,11 @@ export default function TakeTestPage() {
         setQuiz(res.data?.quizDTO ?? null);
         setQuestions(Array.isArray(res.data?.questions) ? res.data.questions : []);
       })
-      .catch((err) => console.error("Lỗi tải câu hỏi:", err));
+      .catch((err) => {
+        console.error("Lỗi tải câu hỏi:", err);
+        setErrorMessage("Không thể tải dữ liệu quiz. Vui lòng thử lại.");
+      })
+      .finally(() => setLoading(false));
   }, [quizId]);
 
   // Hàm lưu đáp án khi người dùng chọn
@@ -55,6 +63,45 @@ export default function TakeTestPage() {
     console.log("Đáp án đã chọn:", selectedAnswers);
     alert("Chuẩn bị nộp bài!");
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+          <p className="text-gray-700 font-medium">Đang tải quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4 max-w-md w-full">
+          <p className="text-red-600 font-semibold">{errorMessage}</p>
+          <div className="flex justify-center gap-3">
+            <Button variant="outline" onClick={() => router.back()}>
+              Quay lại
+            </Button>
+            <Button onClick={() => window.location.reload()}>Tải lại</Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!quiz && questions.length === 0) {
+    return (
+      <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4 max-w-md w-full">
+          <p className="text-gray-700 font-semibold">Không tìm thấy quiz hoặc quiz chưa có dữ liệu.</p>
+          <Button variant="outline" onClick={() => router.back()}>
+            Quay lại
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -71,51 +118,58 @@ export default function TakeTestPage() {
 
         {/* Danh sách câu hỏi */}
         <div className="space-y-8">
-          {questions.map((q, index: number) => (
-            <Card key={q.id} className="shadow-md border-none overflow-hidden">
-              <CardHeader className="bg-indigo-50/50 border-b">
-                <CardTitle className="text-lg font-semibold text-gray-800">
-                  Câu {index + 1}: {q.questionText}
-                </CardTitle>
-              </CardHeader>
+          {questions.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+              <p className="text-gray-600">Quiz này hiện chưa có câu hỏi.</p>
+            </div>
+          ) : (
+            questions.map((q, index: number) => (
+              <Card key={q.id} className="shadow-md border-none overflow-hidden">
+                <CardHeader className="bg-indigo-50/50 border-b">
+                  <CardTitle className="text-lg font-semibold text-gray-800">
+                    Câu {index + 1}: {q.questionText}
+                  </CardTitle>
+                </CardHeader>
 
-              <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {(['A', 'B', 'C', 'D'] as const).map((label) => {
-                  const optionKey = `option${label}` as keyof Question;
-                  const optionValue = q[optionKey] as string;
-                  const isSelected = selectedAnswers[q.id] === label;
+                <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(["A", "B", "C", "D"] as const).map((label) => {
+                    const optionKey = `option${label}` as keyof Question;
+                    const optionValue = q[optionKey] as string;
+                    const isSelected = selectedAnswers[q.id] === label;
 
-                  return (
-                    <div
-                      key={label}
-                      className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${isSelected
-                        ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
-                        : "border-gray-100 hover:border-indigo-100 hover:bg-gray-50"
-                        }`}
-                      onClick={() => handleOptionChange(q.id, label)}
-                    >
-                      <input
-                        type="radio"
-                        name={`question-${q.id}`}
-                        className="w-5 h-5 text-indigo-600"
-                        onChange={() => handleOptionChange(q.id, label)}
-                        checked={isSelected}
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-gray-700">{optionValue}</span>
+                    return (
+                      <div
+                        key={label}
+                        className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${isSelected
+                            ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
+                            : "border-gray-100 hover:border-indigo-100 hover:bg-gray-50"
+                          }`}
+                        onClick={() => handleOptionChange(q.id, label)}
+                      >
+                        <input
+                          type="radio"
+                          name={`question-${q.id}`}
+                          className="w-5 h-5 text-indigo-600"
+                          onChange={() => handleOptionChange(q.id, label)}
+                          checked={isSelected}
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-gray-700">{optionValue}</span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          ))}
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Nút nộp bài */}
         <div className="mt-12 flex justify-center pb-10">
           <Button
             onClick={handleSubmit}
+            disabled={questions.length === 0}
             className="bg-green-600 hover:bg-green-700 h-14 px-12 text-lg font-bold shadow-lg rounded-2xl transition-transform active:scale-95"
           >
             <Send className="mr-2" size={20} /> Nộp

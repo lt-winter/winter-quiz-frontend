@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,11 +8,35 @@ import { usePathname } from "next/navigation";
 import { Button } from "./ui/button";
 
 export default function Navbar() {
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore((state) => state.user);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
+  const setUser = useAuthStore((state) => state.setUser);
+  const logout = useAuthStore((state) => state.logout);
   const pathname = usePathname();
   const hideNavbar = pathname === "/register" || pathname === "/login";
 
+  useEffect(() => {
+    if (!hasHydrated || user) return;
+
+    // Backward compatibility for older localStorage key.
+    const rawUser = localStorage.getItem("quiz_user");
+    if (!rawUser) return;
+
+    try {
+      const parsedUser = JSON.parse(rawUser);
+      if (parsedUser?.id && parsedUser?.email) {
+        setUser(parsedUser);
+      }
+    } catch {
+      localStorage.removeItem("quiz_user");
+    }
+  }, [hasHydrated, setUser, user]);
+
   if (hideNavbar) {
+    return null;
+  }
+
+  if (!hasHydrated) {
     return null;
   }
 
@@ -35,7 +60,14 @@ export default function Navbar() {
             {user ? (
               <>
                 <span className="p-1 font-bold text-sky-800">{user.name}</span>
-                <Button onClick={logout}>Đăng xuất</Button>
+                <Button
+                  onClick={() => {
+                    logout();
+                    localStorage.removeItem("quiz_user");
+                  }}
+                >
+                  Đăng xuất
+                </Button>
               </>
             ) : (
               <>
