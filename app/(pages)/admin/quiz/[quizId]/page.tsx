@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, Trash2, Clock, BookOpen } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Clock, BookOpen, Loader2 } from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "sonner";
 
@@ -90,7 +90,10 @@ export default function QuizDetailPage() {
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-64px)] bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Đang tải...</p>
+        <div className="bg-white rounded-xl shadow-sm px-10 py-8 text-center space-y-3">
+          <Loader2 className="mx-auto h-8 w-8 text-indigo-600 animate-spin" />
+          <p className="text-gray-700 font-semibold">Đang tải dữ liệu quiz...</p>
+        </div>
       </div>
     );
   }

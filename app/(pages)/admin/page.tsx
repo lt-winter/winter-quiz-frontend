@@ -3,16 +3,22 @@ import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, BookOpen, PlusCircle, Eye } from "lucide-react";
+import { Clock, BookOpen, PlusCircle, Eye, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminDashboard() {
-  const [quizzes, setQuizzes] = useState([]);
+  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     api.get("/api/quiz")
       .then((res) => setQuizzes(res.data))
-      .catch((err) => console.error("Lỗi lấy danh sách bài thi:", err));
+      .catch((err) => {
+        console.error("Lỗi lấy danh sách bài thi:", err);
+        setErrorMessage("Không thể tải danh sách bài thi. Vui lòng thử lại.");
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const getFormattedTime = (seconds: number) => {
@@ -20,6 +26,28 @@ export default function AdminDashboard() {
     const remainingSeconds = seconds % 60;
     return `${minutes} phút ${remainingSeconds} giây`;
   };
+
+  if (loading) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-sm px-10 py-8 text-center space-y-3">
+          <Loader2 className="mx-auto h-8 w-8 text-indigo-600 animate-spin" />
+          <p className="text-gray-700 font-semibold">Đang tải danh sách quiz...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="p-6 bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="bg-white rounded-xl shadow-sm p-8 text-center space-y-4 max-w-md w-full">
+          <p className="text-red-600 font-semibold">{errorMessage}</p>
+          <Button onClick={() => window.location.reload()}>Tải lại</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, LogOut } from "lucide-react";
+import { Send, LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 
@@ -138,8 +138,10 @@ export default function TakeQuizPage() {
   if (loading) {
     return (
       <div className="p-6 bg-gray-100 min-h-screen flex items-center justify-center">
-        <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-          <p className="text-gray-700 font-medium">Đang tải quiz...</p>
+        <div className="bg-white rounded-xl shadow-sm px-10 py-8 text-center space-y-3">
+          <Loader2 className="mx-auto h-8 w-8 text-indigo-600 animate-spin" />
+          <p className="text-gray-700 font-semibold">Đang tải quiz...</p>
+          <p className="text-sm text-gray-500">Vui lòng chờ trong giây lát</p>
         </div>
       </div>
     );
