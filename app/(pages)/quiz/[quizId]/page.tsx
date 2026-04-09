@@ -27,6 +27,14 @@ interface QuestionResponse {
   selectedOption: string;
 }
 
+interface SubmitResult {
+  score?: number;
+  marksGot?: number;
+  correctAnswers?: number;
+  attempted?: number;
+  totalQuestions?: number;
+}
+
 export default function TakeQuizPage() {
   const { quizId } = useParams(); // Lấy quizId từ URL
   const normalizedQuizId = Array.isArray(quizId) ? quizId[0] : quizId;
@@ -36,6 +44,10 @@ export default function TakeQuizPage() {
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showResultPopup, setShowResultPopup] = useState(false);
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
@@ -69,6 +81,10 @@ export default function TakeQuizPage() {
 
   // Hàm lưu đáp án khi người dùng chọn
   const handleOptionChange = (questionId: string, optionLabel: string) => {
+    if (isSubmitted) {
+      return;
+    }
+
     setSelectedAnswers((prev) => ({
       ...prev,
       [questionId]: optionLabel,
@@ -89,6 +105,11 @@ export default function TakeQuizPage() {
     if (!user?.id) {
       toast.error("Bạn cần đăng nhập trước khi nộp bài.");
       router.push("/login");
+      return;
+    }
+
+    if (isSubmitted) {
+      toast.info("Bài làm đã được nộp trước đó.");
       return;
     }
 
@@ -113,7 +134,20 @@ export default function TakeQuizPage() {
     try {
       setSubmitting(true);
       const response = await api.post("/api/quiz/submit", payload);
-      const score = response.data?.score;
+      const resultData = response.data;
+      setSubmitResult(
+        typeof resultData === "number"
+          ? { score: resultData, totalQuestions: questions.length }
+          : resultData
+      );
+      setIsSubmitted(true);
+      setShowSubmitConfirm(false);
+      setShowResultPopup(true);
+
+      const score =
+        typeof resultData === "number"
+          ? resultData
+          : resultData?.score ?? resultData?.marksGot;
 
       if (typeof score === "number") {
         toast.success(`Nộp bài thành công. Điểm của bạn: ${score}`);
@@ -133,6 +167,31 @@ export default function TakeQuizPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleOpenSubmitConfirm = () => {
+    if (questions.length === 0) {
+      toast.error("Quiz chưa có câu hỏi để nộp bài.");
+      return;
+    }
+
+    if (!normalizedQuizId) {
+      toast.error("Thiếu mã quiz để nộp bài.");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("Bạn cần đăng nhập trước khi nộp bài.");
+      router.push("/login");
+      return;
+    }
+
+    if (isSubmitted) {
+      toast.info("Bài làm đã được nộp trước đó.");
+      return;
+    }
+
+    setShowSubmitConfirm(true);
   };
 
   if (loading) {
@@ -220,8 +279,8 @@ export default function TakeQuizPage() {
                       <div
                         key={label}
                         className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${isSelected
-                            ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
-                            : "border-gray-100 hover:border-indigo-100 hover:bg-gray-50"
+                          ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
+                          : "border-gray-100 hover:border-indigo-100 hover:bg-gray-50"
                           }`}
                         onClick={() => handleOptionChange(q.id, label)}
                       >
@@ -231,6 +290,7 @@ export default function TakeQuizPage() {
                           className="w-5 h-5 text-indigo-600"
                           onChange={() => handleOptionChange(q.id, label)}
                           checked={isSelected}
+                          disabled={isSubmitted}
                         />
                         <div className="flex flex-col">
                           <span className="text-gray-700">{optionValue}</span>
@@ -247,14 +307,80 @@ export default function TakeQuizPage() {
         {/* Nút nộp bài */}
         <div className="mt-12 flex justify-center pb-10">
           <Button
-            onClick={handleSubmit}
-            disabled={questions.length === 0 || submitting}
+            onClick={handleOpenSubmitConfirm}
+            disabled={questions.length === 0 || submitting || isSubmitted}
             className="bg-green-600 hover:bg-green-700 h-14 px-12 text-lg font-bold shadow-lg rounded-2xl transition-transform active:scale-95"
           >
-            <Send className="mr-2" size={20} /> {submitting ? "Đang nộp..." : "Nộp"}
+            <Send className="mr-2" size={20} /> {submitting ? "Đang nộp..." : isSubmitted ? "Đã nộp" : "Nộp"}
           </Button>
         </div>
       </div>
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-gray-900">Xác nhận nộp bài</h3>
+            <p className="mt-2 text-gray-600">
+              Bạn đã chọn {Object.keys(selectedAnswers).length}/{questions.length} câu.
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              Sau khi nộp, bạn sẽ không thể chỉnh sửa đáp án.
+            </p>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={submitting}
+              >
+                Hủy
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {submitting ? "Đang nộp..." : "Xác nhận nộp"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResultPopup && submitResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-2xl font-bold text-emerald-700">Kết quả bài làm</h3>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              <div className="bg-emerald-50 rounded-lg p-3">
+                <p className="text-gray-600">Điểm</p>
+                <p className="text-xl font-bold text-emerald-700">
+                  {submitResult.score ?? submitResult.marksGot ?? "-"}
+                </p>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-3">
+                <p className="text-gray-600">Câu đúng</p>
+                <p className="text-xl font-bold text-blue-700">
+                  {submitResult.correctAnswers ?? "-"}
+                </p>
+              </div>
+              <div className="bg-indigo-50 rounded-lg p-3">
+                <p className="text-gray-600">Đã làm</p>
+                <p className="text-xl font-bold text-indigo-700">
+                  {submitResult.attempted ?? Object.keys(selectedAnswers).length}/{submitResult.totalQuestions ?? questions.length}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowResultPopup(false)}>
+                Đóng
+              </Button>
+              <Button onClick={() => router.push("/quiz")}>Về danh sách quiz</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
