@@ -61,6 +61,20 @@ export default function QuizDetailPage() {
     return `${secs} giây`;
   };
 
+  const normalizeValue = (value: string | undefined) =>
+    (value || "").trim().toLowerCase();
+
+  const isCorrectOption = (question: Question, option: "A" | "B" | "C" | "D") => {
+    const optionText = String(question[`option${option}` as keyof Question] || "");
+    const correct = normalizeValue(question.correctOption);
+
+    return (
+      correct === normalizeValue(option) ||
+      correct === normalizeValue(`option${option}`) ||
+      correct === normalizeValue(optionText)
+    );
+  };
+
   const handleDeleteQuestion = async (questionId: string) => {
     if (!confirm("Bạn chắc chắn muốn xóa câu hỏi này?")) return;
 
@@ -169,7 +183,10 @@ export default function QuizDetailPage() {
                       <div className="grid grid-cols-2 gap-2 mt-3">
                         {['A', 'B', 'C', 'D'].map((option) => {
                           const text = question[`option${option}` as keyof Question];
-                          const isCorrect = question.correctOption === option;
+                          const isCorrect = isCorrectOption(
+                            question,
+                            option as "A" | "B" | "C" | "D"
+                          );
                           return (
                             <div
                               key={option}

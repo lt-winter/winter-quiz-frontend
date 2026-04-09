@@ -32,7 +32,6 @@ const featureList = [
 export default function Home() {
   const user = useAuthStore((state) => state.user);
 
-  const dashboardHref = user?.role === "ADMIN" ? "/admin/dashboard" : "/user/dashboard";
   const stats = user ? userStats : guestHighlights;
 
   return (
@@ -66,7 +65,7 @@ export default function Home() {
 
                   <div className="flex flex-wrap gap-3">
                     <Button
-                      render={<Link href={dashboardHref} />}
+                      render={<Link href="/admin" />}
                       nativeButton={false}
                       className="h-10 rounded-lg bg-sky-600 px-5 font-semibold text-white hover:bg-sky-700"
                     >
