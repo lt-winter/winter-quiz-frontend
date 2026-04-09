@@ -5,6 +5,8 @@ import api from "@/lib/axios";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Send, LogOut } from "lucide-react";
+import { toast } from "sonner";
+import { useAuthStore } from "@/store/authStore";
 
 interface Question {
   id: string;
@@ -20,18 +22,32 @@ interface Quiz {
   title: string;
 }
 
+interface QuestionResponse {
+  questionId: string;
+  selectedOption: string;
+}
+
 export default function TakeQuizPage() {
   const { quizId } = useParams(); // Lấy quizId từ URL
+  const normalizedQuizId = Array.isArray(quizId) ? quizId[0] : quizId;
   const [questions, setQuestions] = useState<Question[]>([]);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
   // Gọi API lấy danh sách câu hỏi của quiz
   useEffect(() => {
-    api.get(`/api/quiz/${quizId}`)
+    if (!normalizedQuizId) {
+      setErrorMessage("Không tìm thấy mã quiz hợp lệ.");
+      setLoading(false);
+      return;
+    }
+
+    api.get(`/api/quiz/${normalizedQuizId}`)
       .then((res) => {
         setErrorMessage("");
         // Support response shape: { quizDTO, questions }
@@ -49,7 +65,7 @@ export default function TakeQuizPage() {
         setErrorMessage("Không thể tải dữ liệu quiz. Vui lòng thử lại.");
       })
       .finally(() => setLoading(false));
-  }, [quizId]);
+  }, [normalizedQuizId]);
 
   // Hàm lưu đáp án khi người dùng chọn
   const handleOptionChange = (questionId: string, optionLabel: string) => {
@@ -59,9 +75,64 @@ export default function TakeQuizPage() {
     }));
   };
 
-  const handleSubmit = () => {
-    console.log("Đáp án đã chọn:", selectedAnswers);
-    alert("Chuẩn bị nộp bài!");
+  const handleSubmit = async () => {
+    if (questions.length === 0) {
+      toast.error("Quiz chưa có câu hỏi để nộp bài.");
+      return;
+    }
+
+    if (!normalizedQuizId) {
+      toast.error("Thiếu mã quiz để nộp bài.");
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error("Bạn cần đăng nhập trước khi nộp bài.");
+      router.push("/login");
+      return;
+    }
+
+    const unansweredQuestions = questions.filter((question) => !selectedAnswers[question.id]);
+
+    if (unansweredQuestions.length > 0) {
+      toast.error(`Bạn chưa chọn đáp án cho ${unansweredQuestions.length} câu.`);
+      return;
+    }
+
+    const processedResponses: QuestionResponse[] = questions.map((question) => ({
+      questionId: question.id,
+      selectedOption: selectedAnswers[question.id],
+    }));
+
+    const payload = {
+      quizId: normalizedQuizId,
+      userId: user.id,
+      responses: processedResponses,
+    };
+
+    try {
+      setSubmitting(true);
+      const response = await api.post("/api/quiz/submit", payload);
+      const score = response.data?.score;
+
+      if (typeof score === "number") {
+        toast.success(`Nộp bài thành công. Điểm của bạn: ${score}`);
+      } else {
+        toast.success("Nộp bài thành công!");
+      }
+
+      console.log("Payload đã xử lý:", payload);
+      console.log("Kết quả trả về:", response.data);
+    } catch (error: any) {
+      const serverError = error.response?.data;
+      const message =
+        typeof serverError === "string"
+          ? serverError
+          : serverError?.message || "Nộp bài thất bại. Vui lòng thử lại.";
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -118,6 +189,12 @@ export default function TakeQuizPage() {
 
         {/* Danh sách câu hỏi */}
         <div className="space-y-8">
+          {questions.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm px-5 py-3 text-sm text-gray-700">
+              Đã chọn {Object.keys(selectedAnswers).length}/{questions.length} câu
+            </div>
+          )}
+
           {questions.length === 0 ? (
             <div className="bg-white rounded-xl shadow-sm p-8 text-center">
               <p className="text-gray-600">Quiz này hiện chưa có câu hỏi.</p>
@@ -169,10 +246,10 @@ export default function TakeQuizPage() {
         <div className="mt-12 flex justify-center pb-10">
           <Button
             onClick={handleSubmit}
-            disabled={questions.length === 0}
+            disabled={questions.length === 0 || submitting}
             className="bg-green-600 hover:bg-green-700 h-14 px-12 text-lg font-bold shadow-lg rounded-2xl transition-transform active:scale-95"
           >
-            <Send className="mr-2" size={20} /> Nộp
+            <Send className="mr-2" size={20} /> {submitting ? "Đang nộp..." : "Nộp"}
           </Button>
         </div>
       </div>
