@@ -1,0 +1,74 @@
+"use client";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Clock, BookOpen, PlayCircle } from "lucide-react";
+import Link from "next/link";
+
+export default function QuizList() {
+  const [availableQuizzes, setAvailableQuizzes] = useState([]);
+
+  useEffect(() => {
+    api.get("/api/quiz")
+      .then((res) => {
+        setAvailableQuizzes(res.data);
+      })
+      .catch((err) => console.error("Lỗi lấy danh sách quiz:", err));
+  }, []);
+
+  const getFormattedTime = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes} phút ${remainingSeconds} giây`;
+  };
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-10 text-center">
+          <h1 className="text-3xl font-extrabold text-indigo-900">Quiz khả dụng</h1>
+          <p className="text-gray-500 mt-2">Chọn một bài thi để bắt đầu kiểm tra kiến thức của bạn.</p>
+        </header>
+
+        {/* Danh sách bài thi */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {availableQuizzes.map((quiz: any) => (
+            <Card key={quiz.id} className="hover:shadow-2xl transition-all transform hover:-translate-y-1 bg-white">
+              <CardHeader className="border-b bg-indigo-50/50 rounded-t-xl">
+                <CardTitle className="text-xl text-indigo-800">{quiz.title}</CardTitle>
+              </CardHeader>
+
+              <CardContent className="py-6 space-y-4">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Clock className="text-indigo-500" size={18} />
+                  <span className="font-medium">Thời gian:</span> {getFormattedTime(quiz.time)}
+                </div>
+                <div className="flex items-start gap-3 text-gray-600">
+                  <BookOpen className="text-indigo-500 mt-1" size={18} />
+                  <p className="text-sm italic line-clamp-2">{quiz.description || "Không có mô tả cho bài thi này."}</p>
+                </div>
+              </CardContent>
+
+              {/* Nút Start Test quan trọng nhất */}
+              <CardFooter className="pt-0">
+                <Link href={`/quiz/${quiz.id}`} className="w-full">
+                  <Button className="w-full bg-indigo-600 hover:bg-indigo-700 h-12 text-lg font-bold">
+                    <PlayCircle className="mr-2" /> Bắt đầu
+                  </Button>
+                </Link>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+
+        {/* Trường hợp chưa có bài thi nào */}
+        {availableQuizzes.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-3xl shadow-inner border-2 border-dashed">
+            <p className="text-gray-400 text-lg">Hiện tại không có Quiz nào đang mở.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
