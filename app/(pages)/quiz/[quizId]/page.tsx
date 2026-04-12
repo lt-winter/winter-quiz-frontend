@@ -34,6 +34,14 @@ interface SubmitResult {
   correctAnswers?: number;
   attempted?: number;
   totalQuestions?: number;
+  [key: string]: unknown;
+}
+
+interface QuizResultPayload extends SubmitResult {
+  quizId: string;
+  quizTitle: string;
+  completedAt: string;
+  completedInSeconds: number;
 }
 
 export default function TakeQuizPage() {
@@ -46,10 +54,10 @@ export default function TakeQuizPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showResultPopup, setShowResultPopup] = useState(false);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [initialQuizTime, setInitialQuizTime] = useState<number | null>(null);
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
@@ -78,9 +86,13 @@ export default function TakeQuizPage() {
         // time = -1 means unlimited time
         if (typeof quizData?.time === "number" && quizData.time > 0) {
           setRemainingTime(quizData.time);
+          setInitialQuizTime(quizData.time);
         } else {
           setRemainingTime(null);
+          setInitialQuizTime(null);
         }
+
+        setStartedAt(Date.now());
       })
       .catch((err) => {
         console.error("Lỗi tải câu hỏi:", err);
@@ -157,14 +169,55 @@ export default function TakeQuizPage() {
       setSubmitting(true);
       const response = await api.post("/api/quiz/submit", payload);
       const resultData = response.data;
-      setSubmitResult(
+      const normalizedResult: SubmitResult =
         typeof resultData === "number"
           ? { score: resultData, totalQuestions: questions.length }
-          : resultData
-      );
+          : resultData;
+
+      const rawCorrect =
+        (normalizedResult.correctAnswers as number | undefined) ??
+        (normalizedResult.correctAnswer as number | undefined) ??
+        (normalizedResult.correct as number | undefined) ??
+        (normalizedResult.correctCount as number | undefined);
+
+      const rawAttempted =
+        (normalizedResult.attempted as number | undefined) ??
+        (normalizedResult.attemptedQuestions as number | undefined) ??
+        (normalizedResult.attemptedQuestion as number | undefined);
+
+      const rawTotal =
+        (normalizedResult.totalQuestions as number | undefined) ??
+        (normalizedResult.totalQuestion as number | undefined) ??
+        (normalizedResult.total as number | undefined);
+
+      const normalizedCorrect =
+        typeof rawCorrect === "number" ? rawCorrect : 0;
+      const normalizedAttempted =
+        typeof rawAttempted === "number" ? rawAttempted : Object.keys(selectedAnswers).length;
+      const normalizedTotal =
+        typeof rawTotal === "number" ? rawTotal : questions.length;
+
+      const completedInSeconds =
+        initialQuizTime !== null && remainingTime !== null
+          ? Math.max(0, initialQuizTime - remainingTime)
+          : startedAt
+            ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+            : 0;
+
+      const resultPayload: QuizResultPayload = {
+        ...normalizedResult,
+        correctAnswers: normalizedCorrect,
+        attempted: normalizedAttempted,
+        totalQuestions: normalizedTotal,
+        quizId: normalizedQuizId,
+        quizTitle: quiz?.title || "Quiz",
+        completedAt: new Date().toISOString(),
+        completedInSeconds,
+      };
+
+      sessionStorage.setItem("quiz_result_data", JSON.stringify(resultPayload));
       setIsSubmitted(true);
       setShowSubmitConfirm(false);
-      setShowResultPopup(true);
       setRemainingTime(0);
 
       const score =
@@ -178,6 +231,8 @@ export default function TakeQuizPage() {
         toast.success("Nộp bài thành công!");
       }
 
+      router.push("/quiz/result");
+
       console.log("Payload đã xử lý:", payload);
       console.log("Kết quả trả về:", response.data);
     } catch (error: any) {
@@ -190,7 +245,18 @@ export default function TakeQuizPage() {
     } finally {
       setSubmitting(false);
     }
-  }, [isSubmitted, normalizedQuizId, questions, router, selectedAnswers, user?.id]);
+  }, [
+    initialQuizTime,
+    isSubmitted,
+    normalizedQuizId,
+    quiz?.title,
+    questions,
+    remainingTime,
+    router,
+    selectedAnswers,
+    startedAt,
+    user?.id,
+  ]);
 
   const handleOpenSubmitConfirm = () => {
     if (questions.length === 0) {
@@ -471,40 +537,6 @@ export default function TakeQuizPage() {
         </div>
       )}
 
-      {showResultPopup && submitResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-2xl font-bold text-emerald-700">Kết quả bài làm</h3>
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-              <div className="bg-emerald-50 rounded-lg p-3">
-                <p className="text-gray-600">Điểm</p>
-                <p className="text-xl font-bold text-emerald-700">
-                  {submitResult.score ?? submitResult.marksGot ?? "-"}
-                </p>
-              </div>
-              <div className="bg-blue-50 rounded-lg p-3">
-                <p className="text-gray-600">Câu đúng</p>
-                <p className="text-xl font-bold text-blue-700">
-                  {submitResult.correctAnswers ?? "-"}
-                </p>
-              </div>
-              <div className="bg-indigo-50 rounded-lg p-3">
-                <p className="text-gray-600">Đã làm</p>
-                <p className="text-xl font-bold text-indigo-700">
-                  {submitResult.attempted ?? Object.keys(selectedAnswers).length}/{submitResult.totalQuestions ?? questions.length}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowResultPopup(false)}>
-                Đóng
-              </Button>
-              <Button onClick={() => router.push("/quiz")}>Về danh sách quiz</Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

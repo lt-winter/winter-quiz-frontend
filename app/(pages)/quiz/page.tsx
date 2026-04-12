@@ -96,8 +96,8 @@ export default function QuizList() {
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-6xl mx-auto">
         <header className="mb-10 text-center">
-          <h1 className="text-3xl font-extrabold text-indigo-900">Quiz khả dụng</h1>
-          <p className="text-gray-500 mt-2">Chọn một bài thi để bắt đầu kiểm tra kiến thức của bạn.</p>
+          <h1 className="text-3xl font-extrabold text-indigo-900">Danh sách Quiz</h1>
+          <p className="text-gray-500 mt-2">Bắt đầu thôi nào.</p>
         </header>
 
         {/* Danh sách bài thi */}
