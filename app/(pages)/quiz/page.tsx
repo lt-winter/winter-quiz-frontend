@@ -12,20 +12,61 @@ export default function QuizList() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    api.get("/api/quiz")
-      .then((res) => {
-        setAvailableQuizzes(res.data);
-      })
-      .catch((err) => {
+    const fetchQuizzesWithQuestions = async () => {
+      try {
+        const res = await api.get("/api/quiz");
+        const quizzes = Array.isArray(res.data) ? res.data : [];
+
+        const hasQuestionMeta = (quiz: any) =>
+          (Array.isArray(quiz?.questions) && quiz.questions.length > 0) ||
+          Number(quiz?.questionCount) > 0 ||
+          Number(quiz?.numberOfQuestions) > 0;
+
+        const quizzesWithMeta = quizzes.filter(hasQuestionMeta);
+
+        if (quizzesWithMeta.length === 0 && quizzes.length > 0) {
+          const detailResults = await Promise.all(
+            quizzes.map(async (quiz: any) => {
+              try {
+                const detailRes = await api.get(`/api/quiz/${quiz.id}`);
+                const questions = detailRes.data?.questions;
+                return Array.isArray(questions) && questions.length > 0 ? quiz : null;
+              } catch {
+                return null;
+              }
+            })
+          );
+
+          setAvailableQuizzes(detailResults.filter(Boolean));
+          return;
+        }
+
+        setAvailableQuizzes(quizzesWithMeta);
+      } catch (err) {
         console.error("Lỗi lấy danh sách quiz:", err);
         setErrorMessage("Không thể tải danh sách quiz. Vui lòng thử lại.");
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void fetchQuizzesWithQuestions();
   }, []);
 
   const getFormattedTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return "Không giới hạn";
+    }
+
+    const totalSeconds = Math.floor(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours} giờ ${minutes} phút`;
+    }
+
     return `${minutes} phút ${remainingSeconds} giây`;
   };
 

@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, LogOut, Loader2 } from "lucide-react";
+import { Send, LogOut, Loader2, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/authStore";
 
@@ -20,6 +20,7 @@ interface Question {
 interface Quiz {
   id: string;
   title: string;
+  time?: number;
 }
 
 interface QuestionResponse {
@@ -48,6 +49,7 @@ export default function TakeQuizPage() {
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showResultPopup, setShowResultPopup] = useState(false);
+  const [remainingTime, setRemainingTime] = useState<number | null>(null);
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
@@ -69,8 +71,16 @@ export default function TakeQuizPage() {
           return;
         }
 
-        setQuiz(res.data?.quizDTO ?? null);
+        const quizData = res.data?.quizDTO ?? null;
+        setQuiz(quizData);
         setQuestions(Array.isArray(res.data?.questions) ? res.data.questions : []);
+
+        // time = -1 means unlimited time
+        if (typeof quizData?.time === "number" && quizData.time > 0) {
+          setRemainingTime(quizData.time);
+        } else {
+          setRemainingTime(null);
+        }
       })
       .catch((err) => {
         console.error("Lỗi tải câu hỏi:", err);
@@ -80,18 +90,30 @@ export default function TakeQuizPage() {
   }, [normalizedQuizId]);
 
   // Hàm lưu đáp án khi người dùng chọn
-  const handleOptionChange = (questionId: string, optionLabel: string) => {
+  const handleOptionChange = (questionId: string, selectedValue: string) => {
     if (isSubmitted) {
       return;
     }
 
     setSelectedAnswers((prev) => ({
       ...prev,
-      [questionId]: optionLabel,
+      [questionId]: selectedValue,
     }));
   };
 
-  const handleSubmit = async () => {
+  const handleClearOption = (questionId: string) => {
+    if (isSubmitted || remainingTime === 0) {
+      return;
+    }
+
+    setSelectedAnswers((prev) => {
+      const next = { ...prev };
+      delete next[questionId];
+      return next;
+    });
+  };
+
+  const handleSubmit = useCallback(async (forceSubmit = false) => {
     if (questions.length === 0) {
       toast.error("Quiz chưa có câu hỏi để nộp bài.");
       return;
@@ -115,7 +137,7 @@ export default function TakeQuizPage() {
 
     const unansweredQuestions = questions.filter((question) => !selectedAnswers[question.id]);
 
-    if (unansweredQuestions.length > 0) {
+    if (!forceSubmit && unansweredQuestions.length > 0) {
       toast.error(`Bạn chưa chọn đáp án cho ${unansweredQuestions.length} câu.`);
       return;
     }
@@ -143,6 +165,7 @@ export default function TakeQuizPage() {
       setIsSubmitted(true);
       setShowSubmitConfirm(false);
       setShowResultPopup(true);
+      setRemainingTime(0);
 
       const score =
         typeof resultData === "number"
@@ -167,7 +190,7 @@ export default function TakeQuizPage() {
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [isSubmitted, normalizedQuizId, questions, router, selectedAnswers, user?.id]);
 
   const handleOpenSubmitConfirm = () => {
     if (questions.length === 0) {
@@ -191,7 +214,59 @@ export default function TakeQuizPage() {
       return;
     }
 
+    if (remainingTime === 0) {
+      toast.error("Đã hết thời gian làm bài.");
+      return;
+    }
+
     setShowSubmitConfirm(true);
+  };
+
+  useEffect(() => {
+    if (remainingTime === null || remainingTime <= 0 || isSubmitted) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      setRemainingTime((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timerId);
+  }, [remainingTime, isSubmitted]);
+
+  useEffect(() => {
+    if (remainingTime !== 0 || isSubmitted || submitting) {
+      return;
+    }
+
+    toast.warning("Hết thời gian làm bài. Hệ thống đang tự động nộp...");
+    handleSubmit(true);
+  }, [handleSubmit, isSubmitted, remainingTime, submitting]);
+
+  const formatRemainingTime = (seconds: number) => {
+    const safeSeconds = Math.max(0, seconds);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const secs = safeSeconds % 60;
+
+    if (hours > 0) {
+      return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  const answeredCount = Object.keys(selectedAnswers).length;
+
+  const scrollToQuestion = (questionId: string) => {
+    const el = document.getElementById(`question-${questionId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   };
 
   if (loading) {
@@ -237,7 +312,7 @@ export default function TakeQuizPage() {
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <header className="flex justify-between items-center mb-10 bg-white p-6 rounded-xl shadow-sm">
           <div>
             <h1 className="text-2xl font-bold text-indigo-900">Đang làm quiz: {quiz?.title || "..."}</h1>
@@ -248,71 +323,118 @@ export default function TakeQuizPage() {
           </Button>
         </header>
 
-        {/* Danh sách câu hỏi */}
-        <div className="space-y-8">
-          {questions.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm px-5 py-3 text-sm text-gray-700">
-              Đã chọn {Object.keys(selectedAnswers).length}/{questions.length} câu
-            </div>
-          )}
+        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+          {/* Danh sách câu hỏi */}
+          <div className="space-y-8">
+            {questions.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+                <p className="text-gray-600">Quiz này hiện chưa có câu hỏi.</p>
+              </div>
+            ) : (
+              questions.map((q, index: number) => (
+                <Card id={`question-${q.id}`} key={q.id} className="shadow-md border-none overflow-hidden scroll-mt-24">
+                  <CardHeader className="bg-indigo-50/50 border-b flex flex-row items-start justify-between gap-3">
+                    <CardTitle className="text-lg font-semibold text-gray-800 leading-snug">
+                      Câu {index + 1}: {q.questionText}
+                    </CardTitle>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-8 px-3 text-xs text-rose-500 hover:text-rose-700"
+                      onClick={() => handleClearOption(q.id)}
+                      disabled={!selectedAnswers[q.id] || isSubmitted || remainingTime === 0}
+                    >
+                      Bỏ chọn
+                    </Button>
+                  </CardHeader>
 
-          {questions.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-              <p className="text-gray-600">Quiz này hiện chưa có câu hỏi.</p>
-            </div>
-          ) : (
-            questions.map((q, index: number) => (
-              <Card key={q.id} className="shadow-md border-none overflow-hidden">
-                <CardHeader className="bg-indigo-50/50 border-b">
-                  <CardTitle className="text-lg font-semibold text-gray-800">
-                    Câu {index + 1}: {q.questionText}
-                  </CardTitle>
-                </CardHeader>
+                  <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {(["A", "B", "C", "D"] as const).map((label) => {
+                      const optionKey = `option${label}` as keyof Question;
+                      const optionValue = q[optionKey] as string;
+                      const isSelected = selectedAnswers[q.id] === optionValue;
 
-                <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(["A", "B", "C", "D"] as const).map((label) => {
-                    const optionKey = `option${label}` as keyof Question;
-                    const optionValue = q[optionKey] as string;
-                    const isSelected = selectedAnswers[q.id] === label;
-
-                    return (
-                      <div
-                        key={label}
-                        className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${isSelected
-                          ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
-                          : "border-gray-100 hover:border-indigo-100 hover:bg-gray-50"
-                          }`}
-                        onClick={() => handleOptionChange(q.id, label)}
-                      >
-                        <input
-                          type="radio"
-                          name={`question-${q.id}`}
-                          className="w-5 h-5 text-indigo-600"
-                          onChange={() => handleOptionChange(q.id, label)}
-                          checked={isSelected}
-                          disabled={isSubmitted}
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-gray-700">{optionValue}</span>
+                      return (
+                        <div
+                          key={label}
+                          className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${isSelected
+                            ? "border-indigo-600 bg-indigo-50 ring-2 ring-indigo-200"
+                            : "border-gray-100 hover:border-indigo-100 hover:bg-gray-50"
+                            }`}
+                          onClick={() => handleOptionChange(q.id, optionValue)}
+                        >
+                          <input
+                            type="radio"
+                            name={`question-${q.id}`}
+                            className="w-5 h-5 text-indigo-600"
+                            onChange={() => handleOptionChange(q.id, optionValue)}
+                            checked={isSelected}
+                            disabled={isSubmitted || remainingTime === 0}
+                          />
+                          <div className="flex flex-col">
+                            <span className="text-gray-700">{optionValue}</span>
+                          </div>
                         </div>
-                      </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+
+            {/* Nút nộp bài */}
+            <div className="mt-12 flex justify-center pb-10">
+              <Button
+                onClick={handleOpenSubmitConfirm}
+                disabled={questions.length === 0 || submitting || isSubmitted || remainingTime === 0}
+                className="bg-green-600 hover:bg-green-700 h-14 px-12 text-lg font-bold shadow-lg rounded-2xl transition-transform active:scale-95"
+              >
+                <Send className="mr-2" size={20} /> {submitting ? "Đang nộp..." : isSubmitted ? "Đã nộp" : "Nộp"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Sticky right panel */}
+          <aside className="hidden lg:block">
+            <div className="sticky top-20 space-y-4">
+              <div className="rounded-xl bg-white p-4 shadow-sm border">
+                <h3 className="text-sm font-bold text-gray-800 mb-3">Thời gian</h3>
+                {remainingTime === null ? (
+                  <p className="text-sm font-semibold text-emerald-700">Không giới hạn</p>
+                ) : (
+                  <div className={`flex items-center gap-2 text-sm font-semibold ${remainingTime <= 60 ? "text-red-700" : "text-indigo-700"}`}>
+                    <Clock3 size={16} />
+                    <span>{formatRemainingTime(remainingTime)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl bg-white p-4 shadow-sm border">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold text-gray-800">Điều hướng câu hỏi</h3>
+                  <span className="text-xs font-semibold text-indigo-700">
+                    {answeredCount}/{questions.length}
+                  </span>
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {questions.map((q, idx) => {
+                    const done = Boolean(selectedAnswers[q.id]);
+                    return (
+                      <button
+                        key={q.id}
+                        type="button"
+                        onClick={() => scrollToQuestion(q.id)}
+                        className={`h-8 rounded-md text-xs font-semibold transition ${done ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                      >
+                        {idx + 1}
+                      </button>
                     );
                   })}
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-
-        {/* Nút nộp bài */}
-        <div className="mt-12 flex justify-center pb-10">
-          <Button
-            onClick={handleOpenSubmitConfirm}
-            disabled={questions.length === 0 || submitting || isSubmitted}
-            className="bg-green-600 hover:bg-green-700 h-14 px-12 text-lg font-bold shadow-lg rounded-2xl transition-transform active:scale-95"
-          >
-            <Send className="mr-2" size={20} /> {submitting ? "Đang nộp..." : isSubmitted ? "Đã nộp" : "Nộp"}
-          </Button>
+                </div>
+              </div>
+            </div>
+          </aside>
         </div>
       </div>
 
@@ -336,7 +458,9 @@ export default function TakeQuizPage() {
                 Hủy
               </Button>
               <Button
-                onClick={handleSubmit}
+                onClick={() => {
+                  void handleSubmit();
+                }}
                 disabled={submitting}
                 className="bg-green-600 hover:bg-green-700"
               >
