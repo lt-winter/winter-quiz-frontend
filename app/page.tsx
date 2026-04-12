@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/authStore";
 
@@ -31,6 +33,23 @@ const featureList = [
 
 export default function Home() {
   const user = useAuthStore((state) => state.user);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (user?.role === "ADMIN") {
+      router.replace("/admin");
+    }
+  }, [router, user]);
+
+  if (user?.role === "ADMIN") {
+    return (
+      <main className="min-h-[calc(100vh-64px)] bg-linear-to-b from-slate-50 via-sky-50/70 to-blue-100/60 px-4 py-8 sm:px-6 lg:px-8 flex items-center justify-center">
+        <div className="rounded-2xl border border-sky-100 bg-white/95 px-8 py-6 text-center shadow-xl shadow-slate-200/60">
+          <p className="text-slate-700 font-semibold">Đang chuyển đến trang quản trị...</p>
+        </div>
+      </main>
+    );
+  }
 
   const stats = user ? userStats : guestHighlights;
 
@@ -40,9 +59,6 @@ export default function Home() {
         <div className="grid gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             <div className="space-y-4">
-              <p className="inline-block rounded-full bg-sky-100 px-3 py-1 text-sm font-semibold text-sky-700">
-                Winter Quiz
-              </p>
 
               {user ? (
                 <>
@@ -65,11 +81,11 @@ export default function Home() {
 
                   <div className="flex flex-wrap gap-3">
                     <Button
-                      render={<Link href="/admin" />}
+                      render={<Link href="/quiz" />}
                       nativeButton={false}
                       className="h-10 rounded-lg bg-sky-600 px-5 font-semibold text-white hover:bg-sky-700"
                     >
-                      Vào dashboard
+                      Xem quiz
                     </Button>
                     <Button
                       variant="outline"

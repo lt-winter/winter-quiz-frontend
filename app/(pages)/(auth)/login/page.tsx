@@ -75,6 +75,8 @@ export default function LoginPage() {
 
         setUser(user);
         localStorage.setItem("quiz_user", JSON.stringify(user));
+        document.cookie = `quiz_logged_in=true; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+        document.cookie = `quiz_role=${encodeURIComponent(user.role || "USER")}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
         setMessage({
           type: "success",
           text: "Đăng nhập thành công! Đang chuyển hướng...",

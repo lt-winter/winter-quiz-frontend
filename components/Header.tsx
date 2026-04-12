@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 
 export default function Navbar() {
@@ -12,6 +12,7 @@ export default function Navbar() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const setUser = useAuthStore((state) => state.setUser);
   const logout = useAuthStore((state) => state.logout);
+  const router = useRouter();
   const pathname = usePathname();
   const hideNavbar = pathname === "/register" || pathname === "/login";
 
@@ -26,11 +27,20 @@ export default function Navbar() {
       const parsedUser = JSON.parse(rawUser);
       if (parsedUser?.id && parsedUser?.email) {
         setUser(parsedUser);
+        document.cookie = `quiz_logged_in=true; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+        document.cookie = `quiz_role=${encodeURIComponent(parsedUser.role || "USER")}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
       }
     } catch {
       localStorage.removeItem("quiz_user");
     }
   }, [hasHydrated, setUser, user]);
+
+  useEffect(() => {
+    if (!hasHydrated || !user) return;
+
+    document.cookie = `quiz_logged_in=true; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+    document.cookie = `quiz_role=${encodeURIComponent(user.role || "USER")}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
+  }, [hasHydrated, user]);
 
   if (hideNavbar) {
     return null;
@@ -64,6 +74,9 @@ export default function Navbar() {
                   onClick={() => {
                     logout();
                     localStorage.removeItem("quiz_user");
+                    document.cookie = "quiz_logged_in=; path=/; max-age=0; samesite=lax";
+                    document.cookie = "quiz_role=; path=/; max-age=0; samesite=lax";
+                    router.push("/");
                   }}
                 >
                   Đăng xuất
