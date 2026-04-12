@@ -49,6 +49,7 @@ export default function QuizDetailPage() {
   const [resultsLoading, setResultsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [resultsError, setResultsError] = useState("");
+  const [activeTab, setActiveTab] = useState<"questions" | "results">("questions");
   const [loading, setLoading] = useState(true);
 
   const fetchQuizData = useCallback(async () => {
@@ -260,10 +261,40 @@ export default function QuizDetailPage() {
           </div>
         </div>
 
+        {/* Tabs */}
+        <div className="mb-6 p-1 rounded-xl bg-white border border-indigo-100 inline-flex gap-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setActiveTab("questions")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "questions"
+                ? "bg-indigo-600 text-white"
+                : "text-indigo-700 hover:bg-indigo-50"
+            }`}
+          >
+            Danh sách câu hỏi
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("results")}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+              activeTab === "results"
+                ? "bg-indigo-600 text-white"
+                : "text-indigo-700 hover:bg-indigo-50"
+            }`}
+          >
+            Kết quả bài làm
+          </button>
+        </div>
+
         {/* Questions Section */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">Danh sách câu hỏi</h2>
+        {activeTab === "questions" && (
+        <div className="bg-white/95 rounded-2xl border border-indigo-100 shadow-sm p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Danh sách câu hỏi</h2>
+              <p className="text-sm text-gray-500">Tổng số câu hỏi: {questions.length}</p>
+            </div>
             <Button
               onClick={() => router.push(`/admin/add-question/${quizId}`)}
               className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
@@ -327,9 +358,9 @@ export default function QuizDetailPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16 bg-white rounded-2xl">
+            <div className="py-6 text-center rounded-lg border border-gray-200 bg-gray-50">
               <BookOpen size={48} className="mx-auto text-gray-300 mb-4" />
-              <p className="text-gray-500 text-lg mb-4">Chưa có câu hỏi nào</p>
+              <p className="text-gray-500 text-base mb-4">Chưa có câu hỏi nào</p>
               <Button
                 onClick={() => router.push(`/admin/add-question/${quizId}`)}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
@@ -339,12 +370,14 @@ export default function QuizDetailPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Test Results Section */}
-        <div className="mt-10 bg-white/95 rounded-2xl border border-indigo-100 shadow-sm p-5">
+        {activeTab === "results" && (
+        <div className="bg-white/95 rounded-2xl border border-indigo-100 shadow-sm p-5">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">Kết quả bài làm</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Kết quả bài làm</h2>
               <p className="text-sm text-gray-500">Tổng lượt làm: {testResults.length} • Điểm trung bình: {averageScore}</p>
             </div>
             <Button
@@ -420,6 +453,7 @@ export default function QuizDetailPage() {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
