@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import api from "@/lib/axios";
-import Footer from "@/components/Footer";
+import Footer from "@/app/components/Footer";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({

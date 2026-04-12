@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/app/components/ui/button";
 import { ArrowLeft, Plus, Trash2, Clock, BookOpen, Loader2, RefreshCcw } from "lucide-react";
 import api from "@/lib/axios";
 import { toast } from "sonner";

@@ -1,7 +1,7 @@
 import { Nunito } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
-import Header from "@/components/Header";
+import Header from "@/app/components/Header";
 
 export const metadata: Metadata = {
   title: {

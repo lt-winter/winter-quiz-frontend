@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/app/components/ui/card";
+import { Button } from "@/app/components/ui/button";
 import { Clock, BookOpen, PlayCircle, Loader2 } from "lucide-react";
 import Link from "next/link";
 
